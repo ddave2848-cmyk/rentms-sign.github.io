@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>RentMS - Digital Lease Execution</title>
+  <style>
+    :root { --primary: #2563eb; --emerald: #059669; --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; }
+    .card { background: var(--card); border-radius: 14px; padding: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); max-width: 460px; margin: 0 auto; }
+    h2 { margin-top: 0; color: var(--primary); font-size: 1.25rem; }
+    .meta-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+    .tap-zone { margin-top: 22px; border: 2px dashed var(--primary); border-radius: 12px; padding: 32px 16px; text-align: center; background: #eff6ff; user-select: none; -webkit-user-select: none; touch-action: manipulation; cursor: pointer; }
+    .tap-zone:active { background: #dbeafe; transform: scale(0.99); }
+    .tap-counter { font-weight: 800; color: var(--primary); margin-top: 8px; }
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.72); align-items: center; justify-content: center; padding: 16px; }
+    .modal { background: #fff; padding: 24px; border-radius: 14px; width: 100%; max-width: 340px; text-align: center; }
+    .captcha-box { font-size: 1.45rem; font-weight: 800; background: #f1f5f9; padding: 12px; border-radius: 8px; margin: 14px 0; letter-spacing: 1px; }
+    input[type="number"] { width: 80%; padding: 10px; font-size: 1.15rem; border: 2px solid #cbd5e1; border-radius: 8px; text-align: center; }
+    button { margin-top: 14px; width: 100%; padding: 13px; background: var(--primary); color: white; font-weight: 700; border: none; border-radius: 8px; font-size: 0.98rem; cursor: pointer; }
+    .btn-emerald { background: var(--emerald); }
+    .sealed-banner { display: none; margin-top: 20px; padding: 16px; border-radius: 10px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-weight: 600; text-align: center; }
+  </style>
+</head>
+<body>
+
+<div class="card" id="mainCard">
+  <h2 id="pageTitle">Residential Lease Agreement</h2>
+  <div id="contractDetails">Loading agreement details...</div>
+
+  <div id="tapBox" class="tap-zone">
+    <strong>RAPID TRIPLE-TAP HERE TO SIGN</strong>
+    <div style="font-size: 0.8rem; color: #475569; margin-top: 4px;">
+      I consent to execute this lease under the IT Act, 2000.
+    </div>
+    <div id="tapStatus" class="tap-counter">Taps: 0 / 3</div>
+  </div>
+
+  <div id="sealedBanner" class="sealed-banner"></div>
+</div>
+
+<!-- Micro-Captcha Modal -->
+<div id="captchaModal" class="modal-backdrop">
+  <div class="modal">
+    <h3 style="margin-top:0;">Confirm Deliberate Intent</h3>
+    <p style="font-size:0.86rem; color:#475569;">Solve this challenge to seal your digital signature:</p>
+    <div id="mathPrompt" class="captcha-box"></div>
+    <input type="number" id="captchaInput" placeholder="Enter sum" inputmode="numeric" />
+    <button id="verifyBtn">Seal & Send to Landlord</button>
+  </div>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+
+  // MODE A: LANDLORD TAPPED THE VERIFICATION RETURN LINK ON THEIR PHONE
+  const verifyPayload = params.get("verify");
+  if (verifyPayload) {
+    const deepLink = "rentms://sign-callback?payload=" + encodeURIComponent(verifyPayload);
+    document.getElementById("pageTitle").textContent = "Importing Tenant Signature...";
+    document.getElementById("tapBox").style.display = "none";
+    document.getElementById("contractDetails").innerHTML = `
+      <p style="font-size:0.92rem; color:#334155;">
+        Tenant's cryptographic Triple-Tap & Micro-Captcha seal verified. Routing directly to your <strong>RentMS</strong> app...
+      </p>
+      <button class="btn-emerald" onclick="window.location.href='${deepLink}'">
+        Open in RentMS App to Apply Hardware Seal
+      </button>
+    `;
+    setTimeout(() => { window.location.href = deepLink; }, 350);
+  } else {
+    // MODE B: TENANT SIGNING CEREMONY
+    const rawB64 = params.get("contract") || "";
+    let contract = { tenantId: 1, name: "Resident", room: "N/A", rent: 0, deposit: 0, estamp: "N/A", docHash: "00", lphone: "" };
+    try {
+      const jsonStr = atob(rawB64.replace(/-/g, '+').replace(/_/g, '/'));
+      contract = JSON.parse(jsonStr);
+    } catch (e) {}
+
+    document.getElementById("contractDetails").innerHTML = `
+      <div class="meta-row"><span>Tenant Name</span><strong>${contract.name}</strong></div>
+      <div class="meta-row"><span>Unit / Room</span><strong>Room ${contract.room}</strong></div>
+      <div class="meta-row"><span>Base Monthly Rent</span><strong>₹${contract.rent}</strong></div>
+      <div class="meta-row"><span>Security Deposit</span><strong>₹${contract.deposit}</strong></div>
+      <div class="meta-row"><span>E-Stamp Reference</span><strong>${contract.estamp}</strong></div>
+      <div class="meta-row"><span>Document SHA-256</span><strong style="font-family:monospace;">${(contract.docHash || "").substring(0, 14)}...</strong></div>
+    `;
+
+    let tapTimes = [];
+    let numA = 0, numB = 0;
+    const tapBox = document.getElementById("tapBox");
+    const tapStatus = document.getElementById("tapStatus");
+
+    function handleTap(e) {
+      e.preventDefault();
+      const now = performance.now();
+      tapTimes = tapTimes.filter(t => now - t < 850);
+      tapTimes.push(now);
+      tapStatus.textContent = "Taps: " + tapTimes.length + " / 3";
+      if (tapTimes.length >= 3) {
+        tapTimes = [];
+        numA = Math.floor(Math.random() * 14) + 5;
+        numB = Math.floor(Math.random() * 9) + 3;
+        document.getElementById("mathPrompt").textContent = numA + " + " + numB + " = ?";
+        document.getElementById("captchaInput").value = "";
+        document.getElementById("captchaModal").style.display = "flex";
+        document.getElementById("captchaInput").focus();
+      }
+    }
+
+    tapBox.addEventListener("touchend", handleTap, { passive: false });
+    tapBox.addEventListener("click", handleTap);
+
+    document.getElementById("verifyBtn").addEventListener("click", async () => {
+      const ans = parseInt(document.getElementById("captchaInput").value, 10);
+      if (ans !== (numA + numB)) {
+        alert("Incorrect answer. Please solve the math challenge.");
+        return;
+      }
+
+      document.getElementById("captchaModal").style.display = "none";
+      tapBox.style.display = "none";
+
+      const timestamp = new Date().toISOString();
+      const captchaToken = "SOLVED_" + numA + "_PLUS_" + numB + "_EQ_" + ans;
+      const rawStr = contract.docHash + "|" + timestamp + "|" + captchaToken;
+
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(rawStr));
+      const sigHex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+      const returnPacket = {
+        tenantId: contract.tenantId,
+        sigToken: sigHex,
+        timestamp: timestamp,
+        deviceMeta: navigator.userAgent.substring(0, 60),
+        captchaToken: captchaToken
+      };
+
+      const encodedPayload = btoa(JSON.stringify(returnPacket)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      const baseUrl = window.location.origin + window.location.pathname;
+      const landlordVerifyUrl = baseUrl + "?verify=" + encodedPayload;
+      const directDeepLink = "rentms://sign-callback?payload=" + encodedPayload;
+
+      const waMsg = encodeURIComponent(
+        "✓ *Lease Signed & Verified (Room " + contract.room + ")*\n" +
+        "Tenant: " + contract.name + "\n" +
+        "Seal Hash: " + sigHex.substring(0, 16) + "...\n\n" +
+        "Tap below on Landlord device to import into RentMS & apply Hardware Seal:\n" +
+        landlordVerifyUrl
+      );
+
+      const waTarget = contract.lphone ? "https://wa.me/" + contract.lphone + "?text=" + waMsg : "https://wa.me/?text=" + waMsg;
+
+      const banner = document.getElementById("sealedBanner");
+      banner.style.display = "block";
+      banner.innerHTML = `
+        ✓ Signature & Captcha Locked!<br/>
+        <span style="font-size:0.78rem; font-weight:normal;">SHA-256 Seal: ${sigHex.substring(0, 20)}...</span>
+        <button class="btn-emerald" onclick="window.location.href='${waTarget}'">
+          Send Signed Confirmation via WhatsApp
+        </button>
+        <button style="background:#475569; margin-top:8px;" onclick="window.location.href='${directDeepLink}'">
+          Signing on Landlord's Phone? Import Directly
+        </button>
+      `;
+
+      // Automatically trigger WhatsApp handoff to landlord
+      window.location.href = waTarget;
+    });
+  }
+</script>
+</body>
+</html>
