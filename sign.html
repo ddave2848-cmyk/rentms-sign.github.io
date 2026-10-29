@@ -3,44 +3,68 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>RentMS - Formal Digital Lease Execution</title>
+  <title>RentMS - Formal Registered Rent Deed Execution</title>
   <style>
-    :root { --primary: #2563eb; --emerald: #059669; --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --border: #cbd5e1; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; line-height: 1.5; }
-    .card { background: var(--card); border-radius: 14px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; }
-    h2 { margin-top: 0; color: var(--primary); font-size: 1.35rem; text-align: center; border-bottom: 2px solid #eff6ff; padding-bottom: 12px; }
+    :root { --primary: #1e3a8a; --emerald: #059669; --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --border: #cbd5e1; }
+    body { font-family: "Times New Roman", Times, serif, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; line-height: 1.6; }
+    .card { background: var(--card); border-radius: 12px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); max-width: 720px; margin: 0 auto; border: 1px solid #e2e8f0; }
     
-    /* Document Styling */
-    .document-paper { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 20px; max-height: 280px; overflow-y: auto; margin: 16px 0; font-size: 0.88rem; color: #334155; }
-    .document-paper h4 { margin-top: 0; color: #1e293b; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
-    .doc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #f1f5f9; font-size: 0.85rem; }
+    /* Deed Header Styling */
+    .deed-header { text-align: center; border-bottom: 2px solid var(--primary); padding-bottom: 14px; margin-bottom: 20px; }
+    .deed-header h2 { margin: 0; color: var(--primary); font-size: 1.4rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .deed-header p { margin: 4px 0 0 0; font-size: 0.85rem; color: #475569; font-style: italic; }
+
+    /* Legal Document Paper Box */
+    .document-paper { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 24px; max-height: 380px; overflow-y: auto; margin: 16px 0; font-size: 0.92rem; color: #1e293b; text-align: justify; }
+    .document-paper h4 { margin-top: 0; color: var(--primary); text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.05em; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; font-family: sans-serif; }
+    .document-paper p { margin-bottom: 12px; }
+    
+    .doc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #f1f5f9; font-size: 0.88rem; font-family: sans-serif; }
     .doc-grid span { color: #64748b; }
     .doc-grid strong { color: #0f172a; }
 
-    .tap-zone { margin-top: 20px; border: 2px dashed var(--primary); border-radius: 12px; padding: 24px 16px; text-align: center; background: #eff6ff; user-select: none; -webkit-user-select: none; touch-action: manipulation; cursor: pointer; }
+    .action-group { display: flex; gap: 10px; margin-top: 14px; }
+    .tap-zone { margin-top: 16px; border: 2px dashed var(--primary); border-radius: 12px; padding: 24px 16px; text-align: center; background: #eff6ff; user-select: none; -webkit-user-select: none; touch-action: manipulation; cursor: pointer; font-family: sans-serif; }
     .tap-zone:active { background: #dbeafe; transform: scale(0.99); }
     .tap-counter { font-weight: 800; color: var(--primary); margin-top: 6px; font-size: 1.05rem; }
     
     .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.72); align-items: center; justify-content: center; padding: 16px; z-index: 100; }
-    .modal { background: #fff; padding: 24px; border-radius: 14px; width: 100%; max-width: 340px; text-align: center; }
+    .modal { background: #fff; padding: 24px; border-radius: 14px; width: 100%; max-width: 340px; text-align: center; font-family: sans-serif; }
     .captcha-box { font-size: 1.45rem; font-weight: 800; background: #f1f5f9; padding: 12px; border-radius: 8px; margin: 14px 0; letter-spacing: 1px; }
     input[type="number"] { width: 80%; padding: 10px; font-size: 1.15rem; border: 2px solid #cbd5e1; border-radius: 8px; text-align: center; }
-    button { margin-top: 14px; width: 100%; padding: 13px; background: var(--primary); color: white; font-weight: 700; border: none; border-radius: 8px; font-size: 0.98rem; cursor: pointer; }
+    button { width: 100%; padding: 12px; background: var(--primary); color: white; font-weight: 700; border: none; border-radius: 8px; font-size: 0.95rem; cursor: pointer; font-family: sans-serif; }
     .btn-emerald { background: var(--emerald); }
-    .sealed-banner { display: none; margin-top: 20px; padding: 16px; border-radius: 10px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-weight: 600; text-align: center; }
+    .btn-secondary { background: #475569; }
+    .sealed-banner { display: none; margin-top: 20px; padding: 16px; border-radius: 10px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-weight: 600; text-align: center; font-family: sans-serif; }
+
+    /* Print & PDF Export Overrides */
+    @media print {
+      body { background: white; padding: 0; color: black; }
+      .card { box-shadow: none; border: none; max-width: 100%; padding: 0; }
+      .document-paper { max-height: none; overflow: visible; border: none; padding: 0; }
+      .tap-zone, .action-group, #captchaModal, .sealed-banner { display: none !important; }
+      .print-hide { display: none !important; }
+    }
   </style>
 </head>
 <body>
 
 <div class="card" id="mainCard">
-  <h2 id="pageTitle">Residential Lease Agreement</h2>
+  <div class="deed-header">
+    <h2 id="pageTitle">Standard Residential Rent Deed</h2>
+    <p>Executed under the Provisions of the Transfer of Property Act & Information Technology Act, 2000</p>
+  </div>
   
-  <div id="contractDetails">Loading document terms...</div>
+  <div id="contractDetails">Loading deed particulars...</div>
 
-  <div id="tapBox" class="tap-zone">
-    <strong>RAPID TRIPLE-TAP HERE TO SIGN</strong>
+  <div class="action-group print-hide">
+    <button class="btn-secondary" onclick="window.print()">📥 Download / Save as PDF</button>
+  </div>
+
+  <div id="tapBox" class="tap-zone print-hide">
+    <strong>RAPID TRIPLE-TAP HERE TO EXECUTE DEED</strong>
     <div style="font-size: 0.78rem; color: #475569; margin-top: 4px;">
-      By tapping 3 times, you legally execute this lease under the IT Act, 2000.
+      By tapping 3 times, you legally execute this lease agreement.
     </div>
     <div id="tapStatus" class="tap-counter">Taps: 0 / 3</div>
   </div>
@@ -52,10 +76,10 @@
 <div id="captchaModal" class="modal-backdrop">
   <div class="modal">
     <h3 style="margin-top:0;">Confirm Deliberate Intent</h3>
-    <p style="font-size:0.86rem; color:#475569;">Solve this challenge to seal your digital signature:</p>
+    <p style="font-size:0.86rem; color:#475569;">Solve this challenge to securely seal your digital signature:</p>
     <div id="mathPrompt" class="captcha-box"></div>
     <input type="number" id="captchaInput" placeholder="Enter sum" inputmode="numeric" />
-    <button id="verifyBtn">Seal & Send to Landlord</button>
+    <button id="verifyBtn" style="margin-top:14px;">Seal & Send to Landlord</button>
   </div>
 </div>
 
@@ -68,9 +92,10 @@
     const deepLink = "rentms://sign-callback?payload=" + encodeURIComponent(verifyPayload);
     document.getElementById("pageTitle").textContent = "Importing Tenant Signature...";
     document.getElementById("tapBox").style.display = "none";
+    document.querySelector(".action-group").style.display = "none";
     document.getElementById("contractDetails").innerHTML = `
-      <p style="font-size:0.92rem; color:#334155; text-align:center; padding: 20px 0;">
-        Tenant's cryptographic Triple-Tap & Micro-Captcha seal verified. Routing directly to your <strong>RentMS</strong> app...
+      <p style="font-size:0.95rem; color:#334155; text-align:center; padding: 30px 0; font-family:sans-serif;">
+        Tenant's cryptographic Triple-Tap & Micro-Captcha seal verified successfully. Routing directly to your <strong>RentMS</strong> app...
       </p>
       <button class="btn-emerald" onclick="window.location.href='${deepLink}'">
         Open in RentMS App to Apply Hardware Seal
@@ -78,7 +103,7 @@
     `;
     setTimeout(() => { window.location.href = deepLink; }, 350);
   } else {
-    // MODE B: TENANT SIGNING CEREMONY - RENDERING FORMAL DOCUMENT VIEW
+    // MODE B: TENANT RENT DEED SIGNING CEREMONY
     const rawB64 = params.get("contract") || "";
     let contract = { tenantId: 1, name: "Resident", room: "N/A", rent: 0, deposit: 0, estamp: "N/A", docHash: "00", lphone: "" };
     try {
@@ -89,21 +114,31 @@
     document.getElementById("contractDetails").innerHTML = `
       <div class="doc-grid">
         <div><span>Tenant Name:</span><br><strong>${contract.name}</strong></div>
-        <div><span>Assigned Unit:</span><br><strong>Room ${contract.room}</strong></div>
-        <div><span>Monthly Rent:</span><br><strong>₹${contract.rent}</strong></div>
-        <div><span>Security Deposit:</span><br><strong>₹${contract.deposit}</strong></div>
+        <div><span>Demised Premises:</span><br><strong>Room Unit ${contract.room}</strong></div>
+        <div><span>Monthly Rent:</span><br><strong>₹${contract.rent} / month</strong></div>
+        <div><span>Interest-Free Deposit:</span><br><strong>₹${contract.deposit}</strong></div>
       </div>
 
       <div class="document-paper">
-        <h4>Terms & Conditions of Lease</h4>
-        <p><strong>1. Engagement & Term:</strong> This Residential Lease Agreement is entered into by and between the Landlord and the Tenant named herein, for the designated room property managed via RentMS.</p>
-        <p><strong>2. Financial Obligations:</strong> The Tenant agrees to pay the stipulated Monthly Rent on or before the designated due date. The Security Deposit shall be held securely in the tenant vault pool and is refundable upon standard lease termination subject to clearance of utility arrears and property inspections.</p>
-        <p><strong>3. Compliance & Maintenance:</strong> The Tenant accepts full responsibility for maintaining the premises in good order, observing community guidelines, and ensuring timely clearance of metered utility allocations (Electricity, Water, PNG).</p>
-        <p><strong>4. Legal Validity:</strong> Backed by E-Stamp reference <strong>${contract.estamp}</strong>, this document is bound electronically under the provisions of the Information Technology Act, 2000, utilizing cryptographic SHA-256 digital verification hashes.</p>
+        <h4>THIS RENT DEED is made and executed on this day by and between:</h4>
+        <p><strong>THE LANDLORD / PROPERTY MANAGER</strong>, hereinafter referred to as the First Party, and <strong>${contract.name}</strong>, hereinafter referred to as the SECOND PARTY / TENANT.</p>
+        
+        <p><strong>WHEREAS</strong> the First Party is the lawful owner and administrator of the residential property managed through RentMS, and has agreed to let out Unit <strong>Room ${contract.room}</strong> to the Tenant on a monthly rental basis.</p>
+        
+        <h4>NOW THIS DEED WITNESSETH AS FOLLOWS:</h4>
+        <p><strong>1. Rent & Payment Terms:</strong> The Tenant agrees to pay a monthly rent of <strong>₹${contract.rent}</strong> payable on or before the 5th day of each calendar month without fail.</p>
+        
+        <p><strong>2. Security Deposit:</strong> The Tenant has deposited an interest-free security advance of <strong>₹${contract.deposit}</strong> with the First Party, which shall be maintained in the property vault pool and refunded upon vacation of the premises after adjusting any utility dues or damage deductions.</p>
+        
+        <p><strong>3. Utilities & Maintenance:</strong> The monthly rent is exclusive of electricity, water, and PNG gas consumption charges. Sub-meter readings shall be recorded per billing cycles and settled accordingly.</p>
+        
+        <p><strong>4. Use of Premises:</strong> The demised premises shall be utilized strictly for residential purposes by the Tenant and registered occupants. No structural alterations or subletting is permitted without prior written consent.</p>
+        
+        <p><strong>5. Legal Compliance:</strong> Backed by E-Stamp reference certificate <strong>${contract.estamp}</strong>, this Deed is executed and bound electronically under the provisions of the Information Technology Act, 2000 and applicable state regulations.</p>
       </div>
 
       <div style="font-size: 0.78rem; color: #64748b; font-family: monospace; text-align: center; margin-bottom: 4px;">
-        Document SHA-256 Hash: ${(contract.docHash || "").substring(0, 24)}...
+        Cryptographic SHA-256 Ledger Hash: ${(contract.docHash || "").substring(0, 24)}...
       </div>
     `;
 
@@ -141,6 +176,7 @@
 
       document.getElementById("captchaModal").style.display = "none";
       tapBox.style.display = "none";
+      document.querySelector(".action-group").style.display = "none";
 
       const timestamp = new Date().toISOString();
       const captchaToken = "SOLVED_" + numA + "_PLUS_" + numB + "_EQ_" + ans;
@@ -163,7 +199,7 @@
       const directDeepLink = "rentms://sign-callback?payload=" + encodedPayload;
 
       const waMsg = encodeURIComponent(
-        "✓ *Lease Signed & Verified (Room " + contract.room + ")*\n" +
+        "✓ *Rent Deed Executed & Verified (Room " + contract.room + ")*\n" +
         "Tenant: " + contract.name + "\n" +
         "Seal Hash: " + sigHex.substring(0, 16) + "...\n\n" +
         "Tap below on Landlord device to import into RentMS & apply Hardware Seal:\n" +
@@ -175,12 +211,12 @@
       const banner = document.getElementById("sealedBanner");
       banner.style.display = "block";
       banner.innerHTML = `
-        ✓ Signature & Captcha Locked!<br/>
+        ✓ Deed Execution & Captcha Sealed!<br/>
         <span style="font-size:0.78rem; font-weight:normal;">SHA-256 Seal: ${sigHex.substring(0, 20)}...</span>
-        <button class="btn-emerald" onclick="window.location.href='${waTarget}'">
-          Send Signed Confirmation via WhatsApp
+        <button class="btn-emerald" onclick="window.location.href='${waTarget}'" style="margin-top:10px;">
+          Send Execution Confirmation via WhatsApp
         </button>
-        <button style="background:#475569; margin-top:8px;" onclick="window.location.href='${directDeepLink}'">
+        <button class="btn-secondary" onclick="window.location.href='${directDeepLink}'" style="margin-top:8px;">
           Signing on Landlord's Phone? Import Directly
         </button>
       `;
