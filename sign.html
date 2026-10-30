@@ -82,26 +82,39 @@
     <button id="verifyBtn" style="margin-top:14px;">Seal & Send to Landlord</button>
   </div>
 </div>
-
 <script>
   const params = new URLSearchParams(window.location.search);
+
+  // Helper to build an Android-compliant Intent URI that Chrome & Brave allow
+  function buildAndroidIntentUri(payloadStr) {
+    const cleanPayload = encodeURIComponent(payloadStr);
+    return `intent://sign-callback?payload=${cleanPayload}#Intent;scheme=rentms;package=com.rentms.app;S.browser_fallback_url=${encodeURIComponent(window.location.href)};end`;
+  }
 
   // MODE A: LANDLORD TAPPED THE VERIFICATION RETURN LINK ON THEIR PHONE
   const verifyPayload = params.get("verify");
   if (verifyPayload) {
-    const deepLink = "rentms://sign-callback?payload=" + encodeURIComponent(verifyPayload);
+    const intentLink = buildAndroidIntentUri(verifyPayload);
+    const customSchemeLink = "rentms://sign-callback?payload=" + encodeURIComponent(verifyPayload);
+
     document.getElementById("pageTitle").textContent = "Importing Tenant Signature...";
     document.getElementById("tapBox").style.display = "none";
     document.querySelector(".action-group").style.display = "none";
     document.getElementById("contractDetails").innerHTML = `
       <p style="font-size:0.95rem; color:#334155; text-align:center; padding: 30px 0; font-family:sans-serif;">
-        Tenant's cryptographic Triple-Tap & Micro-Captcha seal verified successfully. Routing directly to your <strong>RentMS</strong> app...
+        Tenant's cryptographic Triple-Tap & Micro-Captcha seal verified successfully. Tap below to open <strong>RentMS</strong> and apply your Hardware Seal:
       </p>
-      <button class="btn-emerald" onclick="window.location.href='${deepLink}'">
+      <a href="${intentLink}" 
+         style="display:block; box-sizing:border-box; width:100%; padding:14px; background:var(--emerald); color:white; text-align:center; text-decoration:none; font-weight:700; border-radius:8px; font-size:0.95rem; font-family:sans-serif;">
         Open in RentMS App to Apply Hardware Seal
-      </button>
+      </a>
+      <a href="${customSchemeLink}" 
+         style="display:block; text-align:center; margin-top:12px; font-size:0.8rem; color:#64748b; font-family:sans-serif;">
+        Fallback: Launch via Direct Scheme
+      </a>
     `;
-    setTimeout(() => { window.location.href = deepLink; }, 350);
+    // Attempt automatic handoff via intent://
+    setTimeout(() => { window.location.href = intentLink; }, 300);
   } else {
     // MODE B: TENANT RENT DEED SIGNING CEREMONY
     const rawB64 = params.get("contract") || "";
@@ -180,28 +193,32 @@
 
       const timestamp = new Date().toISOString();
       const captchaToken = "SOLVED_" + numA + "_PLUS_" + numB + "_EQ_" + ans;
-      const rawStr = contract.docHash + "|" + timestamp + "|" + captchaToken;
+      
+      // Bind Tenant Name, Phone, and Device fingerprint directly into trace string
+      const traceIdentity = `NAME:${contract.name}|PHONE:${contract.tenantId}|UA:${navigator.userAgent}`;
+      const rawStr = contract.docHash + "|" + traceIdentity + "|" + timestamp + "|" + captchaToken;
 
       const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(rawStr));
       const sigHex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 
       const returnPacket = {
         tenantId: contract.tenantId,
+        tenantName: contract.name,
         sigToken: sigHex,
         timestamp: timestamp,
-        deviceMeta: navigator.userAgent.substring(0, 60),
+        deviceMeta: navigator.userAgent,
         captchaToken: captchaToken
       };
 
       const encodedPayload = btoa(JSON.stringify(returnPacket)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
       const baseUrl = window.location.origin + window.location.pathname;
       const landlordVerifyUrl = baseUrl + "?verify=" + encodedPayload;
-      const directDeepLink = "rentms://sign-callback?payload=" + encodedPayload;
+      const directIntentLink = buildAndroidIntentUri(encodedPayload);
 
       const waMsg = encodeURIComponent(
         "✓ *Rent Deed Executed & Verified (Room " + contract.room + ")*\n" +
         "Tenant: " + contract.name + "\n" +
-        "Seal Hash: " + sigHex.substring(0, 16) + "...\n\n" +
+        "Trace Hash: " + sigHex.substring(0, 16) + "...\n\n" +
         "Tap below on Landlord device to import into RentMS & apply Hardware Seal:\n" +
         landlordVerifyUrl
       );
@@ -212,16 +229,15 @@
       banner.style.display = "block";
       banner.innerHTML = `
         ✓ Deed Execution & Captcha Sealed!<br/>
-        <span style="font-size:0.78rem; font-weight:normal;">SHA-256 Seal: ${sigHex.substring(0, 20)}...</span>
-        <button class="btn-emerald" onclick="window.location.href='${waTarget}'" style="margin-top:10px;">
+        <span style="font-size:0.78rem; font-weight:normal;">Traceable SHA-256 Seal: ${sigHex.substring(0, 20)}...</span>
+        <a href="${waTarget}" style="display:block; box-sizing:border-box; width:100%; padding:12px; background:var(--emerald); color:white; text-align:center; text-decoration:none; font-weight:700; border-radius:8px; font-size:0.95rem; margin-top:10px;">
           Send Execution Confirmation via WhatsApp
-        </button>
-        <button class="btn-secondary" onclick="window.location.href='${directDeepLink}'" style="margin-top:8px;">
+        </a>
+        <a href="${directIntentLink}" style="display:block; box-sizing:border-box; width:100%; padding:12px; background:#475569; color:white; text-align:center; text-decoration:none; font-weight:700; border-radius:8px; font-size:0.95rem; margin-top:8px;">
           Signing on Landlord's Phone? Import Directly
-        </button>
+        </a>
       `;
 
-      // Automatically trigger WhatsApp handoff to landlord
       window.location.href = waTarget;
     });
   }
